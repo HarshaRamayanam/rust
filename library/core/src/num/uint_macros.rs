@@ -1938,25 +1938,60 @@ macro_rules! uint_impl {
         #[inline]
         #[rustc_inherit_overflow_checks]
         pub const fn pow(self, mut exp: u32) -> Self {
-            if exp == 0 {
-                return 1;
-            }
-            let mut base = self;
-            let mut acc = 1;
 
+            // Original code - start
+            // if exp == 0 {
+            //     return 1;
+            // }
+            // let mut base = self;
+            // let mut acc = 1;
+
+            // while exp > 1 {
+            //     if (exp & 1) == 1 {
+            //         acc = acc * base;
+            //     }
+            //     exp /= 2;
+            //     base = base * base;
+            // }
+
+            // // since exp!=0, finally the exp must be 1.
+            // // Deal with the final bit of the exponent separately, since
+            // // squaring the base afterwards is not necessary and may cause a
+            // // needless overflow.
+            // acc * base
+            // Original code - end
+
+            // My code - start
+            let mut base = self;
+            if base & base.wrapping_sub(1) == 0 {
+                if base == 0 {
+                    if exp == 0 {
+                        return 1;
+                    }
+                    return 0;
+                }
+                let base_pow = base.trailing_zeros();
+                return 1 << (base_pow * exp);
+            }
+        
+            let mut acc = 1;
             while exp > 1 {
                 if (exp & 1) == 1 {
-                    acc = acc * base;
+                    acc *= base;
                 }
                 exp /= 2;
                 base = base * base;
             }
-
-            // since exp!=0, finally the exp must be 1.
+        
             // Deal with the final bit of the exponent separately, since
             // squaring the base afterwards is not necessary and may cause a
             // needless overflow.
-            acc * base
+            if exp == 1 {
+                acc *= base;
+            }
+        
+            acc
+            // My code - end
         }
 
         /// Performs Euclidean division.
