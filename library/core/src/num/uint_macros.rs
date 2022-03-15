@@ -1001,12 +1001,43 @@ macro_rules! uint_impl {
                       without modifying the original"]
         #[inline]
         pub const fn checked_pow(self, mut exp: u32) -> Option<Self> {
-            if exp == 0 {
-                return Some(1);
-            }
-            let mut base = self;
-            let mut acc: Self = 1;
+            // Original code - start
+            // if exp == 0 {
+            //     return Some(1);
+            // }
+            // let mut base = self;
+            // let mut acc: Self = 1;
 
+            // while exp > 1 {
+            //     if (exp & 1) == 1 {
+            //         acc = try_opt!(acc.checked_mul(base));
+            //     }
+            //     exp /= 2;
+            //     base = try_opt!(base.checked_mul(base));
+            // }
+
+            // // since exp!=0, finally the exp must be 1.
+            // // Deal with the final bit of the exponent separately, since
+            // // squaring the base afterwards is not necessary and may cause a
+            // // needless overflow.
+
+            // Some(try_opt!(acc.checked_mul(base)))
+            // Original code - end
+
+            // My code - start
+            let mut base = self;
+            if base & base.wrapping_sub(1) == 0 {
+                if base == 0 {
+                    if exp == 0 {
+                        return Some(1);
+                    }
+                    return Some(0);
+                }
+                let base_pow = base.trailing_zeros();
+                return Some(1 << (base_pow * exp));
+            }
+        
+            let mut acc: Self = 1;
             while exp > 1 {
                 if (exp & 1) == 1 {
                     acc = try_opt!(acc.checked_mul(base));
@@ -1014,13 +1045,14 @@ macro_rules! uint_impl {
                 exp /= 2;
                 base = try_opt!(base.checked_mul(base));
             }
-
+        
             // since exp!=0, finally the exp must be 1.
             // Deal with the final bit of the exponent separately, since
             // squaring the base afterwards is not necessary and may cause a
             // needless overflow.
 
             Some(try_opt!(acc.checked_mul(base)))
+            // My code - end
         }
 
         /// Saturating integer addition. Computes `self + rhs`, saturating at
@@ -1891,10 +1923,52 @@ macro_rules! uint_impl {
                       without modifying the original"]
         #[inline]
         pub const fn overflowing_pow(self, mut exp: u32) -> (Self, bool) {
-            if exp == 0{
-                return (1,false);
-            }
+
+            // Original code - start
+            // if exp == 0{
+            //     return (1,false);
+            // }
+            // let mut base = self;
+            // let mut acc: Self = 1;
+            // let mut overflown = false;
+            // // Scratch space for storing results of overflowing_mul.
+            // let mut r;
+
+            // while exp > 1 {
+            //     if (exp & 1) == 1 {
+            //         r = acc.overflowing_mul(base);
+            //         acc = r.0;
+            //         overflown |= r.1;
+            //     }
+            //     exp /= 2;
+            //     r = base.overflowing_mul(base);
+            //     base = r.0;
+            //     overflown |= r.1;
+            // }
+
+            // // since exp!=0, finally the exp must be 1.
+            // // Deal with the final bit of the exponent separately, since
+            // // squaring the base afterwards is not necessary and may cause a
+            // // needless overflow.
+            // r = acc.overflowing_mul(base);
+            // r.1 |= overflown;
+
+            // r
+            // Original code - end
+
+            // My code - start
             let mut base = self;
+            if base & base.wrapping_sub(1) == 0 {
+                if base == 0 {
+                    if exp == 0 {
+                        return (1, false);
+                    }
+                    return (0, false);
+                }
+                let base_pow = base.trailing_zeros();
+                return (1 << (base_pow * exp), false);
+            }
+            
             let mut acc: Self = 1;
             let mut overflown = false;
             // Scratch space for storing results of overflowing_mul.
@@ -1911,15 +1985,16 @@ macro_rules! uint_impl {
                 base = r.0;
                 overflown |= r.1;
             }
-
+        
             // since exp!=0, finally the exp must be 1.
             // Deal with the final bit of the exponent separately, since
             // squaring the base afterwards is not necessary and may cause a
             // needless overflow.
             r = acc.overflowing_mul(base);
             r.1 |= overflown;
-
+            
             r
+            // My code - end
         }
 
         /// Raises self to the power of `exp`, using exponentiation by squaring.
